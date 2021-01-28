@@ -32,6 +32,7 @@
 
 static int (*original_open)(const char *, int, ...);
 static int (*original_unlink)(const char *);
+static int (*original_mknod)(const char *, mode_t, dev_t);
 
 
 void debug(char *fmt, ...)
@@ -147,6 +148,30 @@ int unlink(const char *pathname)
 	debug("[unlink pre-call] redirected_path=%s (from path=%s)", redirected_path, pathname);
 	int result = original_unlink(redirected_path);
 	debug("[unlink post-call] redirected_path=%s ret=0x%x", redirected_path, result);
+
+	free(redirected_path);
+	return result;
+}
+
+int mknod(const char *pathname, mode_t mode, dev_t dev)
+{
+    if (original_mknod == NULL) {
+		original_mknod = (int (*)(const char *)) dlsym(RTLD_NEXT, "mknod");
+	}
+
+	const char *snapname = get_snap_name();
+	if (snapname == NULL) {
+		return original_mknod(pathname, mode, dev);
+	}
+
+	char *redirected_path = redirect_shm(snapname, pathname);
+	if (redirected_path == NULL) {
+		return original_mknod(pathname, mode, dev);
+	}
+
+	debug("[mknod pre-call] redirected_path=%s (from path=%s)", redirected_path, pathname);
+	int result = original_mknod(redirected_path, mode, dev);
+	debug("[mknod post-call] redirected_path=%s ret=0x%x", redirected_path, result);
 
 	free(redirected_path);
 	return result;
