@@ -156,7 +156,7 @@ int unlink(const char *pathname)
 int mknod(const char *pathname, mode_t mode, dev_t dev)
 {
     if (original_mknod == NULL) {
-		original_mknod = (int (*)(const char *)) dlsym(RTLD_NEXT, "mknod");
+		original_mknod = (int (*)(const char *, mode_t, dev_t)) dlsym(RTLD_NEXT, "mknod");
 	}
 
 	const char *snapname = get_snap_name();
